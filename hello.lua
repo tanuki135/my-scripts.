@@ -1,4 +1,4 @@
---// Dark Hub v1 | Ultimate Stable + Animated Sliders
+--// Dark Hub v1 | Ultimate Stable + Animated Sliders + Title Drag
 --// Place in StarterPlayerScripts
 
 local Players = game:GetService("Players")
@@ -62,8 +62,6 @@ local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0,300,0,400)
 frame.Position = UDim2.new(0.5,-150,0.5,-200)
 frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.Active = true
-frame.Draggable = true
 frame.Visible = false
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
 
@@ -88,6 +86,27 @@ close.TextSize = 16
 Instance.new("UICorner", close).CornerRadius = UDim.new(0,12)
 close.MouseButton1Click:Connect(function() frame.Visible = false end)
 close.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch then frame.Visible = false end end)
+
+-- Make title draggable
+local dragging = false
+local dragStart = nil
+local startPos = nil
+title.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then dragging = false end
+		end)
+	end
+end)
+title.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType==Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
 
 -- Container
 local container = Instance.new("Frame", frame)
@@ -155,10 +174,10 @@ local function newSlider(lbl,min,max,init,fn)
 			if fn then fn(v) end
 		end
 	end)
-	-- Tween to expand smoothly
+	-- Tween to expand smoothly below button
 	fr:GetPropertyChangedSignal("Parent"):Connect(function()
 		if fr.Parent then
-			fr:TweenSize(UDim2.new(1,0,0,50),"Out","Quad",0.2,true)
+			fr:TweenSize(UDim2.new(1,0,0,50),"Out","Quad",0.3,true)
 		end
 	end)
 	return fr
@@ -170,8 +189,8 @@ local speedBtn = newBtn("🏃 Speed Boost", Color3.fromRGB(60,60,90), function()
 	local h = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
 	if not h then return end
 	if speedSlider then
-		speedSlider:TweenSize(UDim2.new(1,0,0,0),"Out","Quad",0.2,true)
-		wait(0.2)
+		speedSlider:TweenSize(UDim2.new(1,0,0,0),"Out","Quad",0.3,true)
+		wait(0.3)
 		speedSlider:Destroy()
 		speedSlider = nil
 		h.WalkSpeed = 16
@@ -185,8 +204,8 @@ local jumpBtn = newBtn("🦋 Infinity Jump", Color3.fromRGB(60,90,60), function(
 	local h = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
 	if not h then return end
 	if jumpSlider then
-		jumpSlider:TweenSize(UDim2.new(1,0,0,0),"Out","Quad",0.2,true)
-		wait(0.2)
+		jumpSlider:TweenSize(UDim2.new(1,0,0,0),"Out","Quad",0.3,true)
+		wait(0.3)
 		jumpSlider:Destroy()
 		jumpSlider = nil
 		h.JumpPower = 50
@@ -220,7 +239,7 @@ newBtn("🚀 Fly", Color3.fromRGB(80,60,60), function()
 	else
 		flying = false
 		if flyConn then flyConn:Disconnect() end
-		for _,v in pairs(hrp:GetChildren()) do if v:IsA("BodyVelocity") and v.Name=="DarkHubFly" then v:Destroy() end end
+		for _,v in pairs(hrp:GetChildren()) do if v:IsA("BodyVelocity") and v.Name=="DarkHubFly" then v:Destroy() end
 	end
 end)
 
