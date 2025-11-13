@@ -1,4 +1,4 @@
---// Dark Hub v1 | Stable + Sliders + Title Drag
+--// Dark Hub v1 | Stable + Sliders + Drag + Safe Startup
 --// Place inside StarterPlayerScripts
 
 local Players = game:GetService("Players")
@@ -34,11 +34,13 @@ do
 	anim:Destroy()
 end
 
---============= Left-Bottom Open Button =============
-local gui = Instance.new("ScreenGui", lp:WaitForChild("PlayerGui"))
+--============= ScreenGui (single creation) =============
+local gui = Instance.new("ScreenGui")
 gui.Name = "DarkHub"
 gui.ResetOnSpawn = false
+gui.Parent = lp:WaitForChild("PlayerGui")
 
+--============= Left-Bottom Open Button =============
 local openBtn = Instance.new("TextButton", gui)
 openBtn.Size = UDim2.new(0,50,0,50)
 openBtn.Position = UDim2.new(0,10,1,-60)
@@ -84,30 +86,29 @@ close.Font = Enum.Font.GothamBold
 close.TextSize = 16
 Instance.new("UICorner", close).CornerRadius = UDim.new(0,12)
 close.MouseButton1Click:Connect(function() frame.Visible = false end)
-close.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch then frame.Visible = false end end)
+close.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then frame.Visible = false end end)
 
--- Make title draggable only
+--============= Title Drag Only =============
 local dragging = false
-local dragStart = nil
-local startPos = nil
+local dragStart, startPos
 title.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
+	if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
 		dragging = true
 		dragStart = input.Position
 		startPos = frame.Position
 		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then dragging = false end
+			if input.UserInputState==Enum.UserInputState.End then dragging=false end
 		end)
 	end
 end)
 title.InputChanged:Connect(function(input)
 	if dragging and input.UserInputType==Enum.UserInputType.MouseMovement then
 		local delta = input.Position - dragStart
-		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		frame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
 	end
 end)
 
--- Container
+--============= Container & Layout =============
 local container = Instance.new("Frame", frame)
 container.Size = UDim2.new(1,-20,1,-60)
 container.Position = UDim2.new(0,10,0,50)
@@ -129,9 +130,9 @@ local function newBtn(txt,color,fn)
 	return b
 end
 
-local function newSlider(lbl,min,max,init,fn, parentBtn)
+local function newSlider(lbl,min,max,init,fn)
 	local fr = Instance.new("Frame", container)
-	fr.Size = UDim2.new(1,0,0,0) -- start collapsed
+	fr.Size = UDim2.new(1,0,0,50)
 	fr.BackgroundTransparency = 1
 	local l = Instance.new("TextLabel", fr)
 	l.Size = UDim2.new(0.4,0,1,0)
@@ -154,15 +155,15 @@ local function newSlider(lbl,min,max,init,fn, parentBtn)
 
 	local draggingSlider=false
 	h.InputBegan:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
 			draggingSlider=true
-			frame.Draggable = false
+			frame.Draggable=false
 		end
 	end)
 	UIS.InputEnded:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
 			draggingSlider=false
-			frame.Draggable = true
+			frame.Draggable=true
 		end
 	end)
 	UIS.InputChanged:Connect(function(i)
@@ -174,12 +175,6 @@ local function newSlider(lbl,min,max,init,fn, parentBtn)
 			if fn then fn(v) end
 		end
 	end)
-
-	-- Smooth expand below parent button
-	if parentBtn then
-		fr.Position = UDim2.new(0,0,parentBtn.LayoutOrder*50 + 50,0)
-	end
-	fr:TweenSize(UDim2.new(1,0,0,50),"Out","Quad",0.3,true)
 	return fr
 end
 
@@ -189,13 +184,11 @@ local speedBtn = newBtn("🏃 Speed Boost", Color3.fromRGB(60,60,90), function()
 	local h = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
 	if not h then return end
 	if speedSlider then
-		speedSlider:TweenSize(UDim2.new(1,0,0,0),"Out","Quad",0.3,true)
-		wait(0.3)
 		speedSlider:Destroy()
-		speedSlider = nil
-		h.WalkSpeed = 16
+		speedSlider=nil
+		h.WalkSpeed=16
 	else
-		speedSlider = newSlider("Speed",16,200,h.WalkSpeed or 16,nil, speedBtn)
+		speedSlider=newSlider("Speed",16,200,h.WalkSpeed or 16,function(v) h.WalkSpeed=v end)
 	end
 end)
 
@@ -204,17 +197,15 @@ local jumpBtn = newBtn("🦋 Infinity Jump", Color3.fromRGB(60,90,60), function(
 	local h = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
 	if not h then return end
 	if jumpSlider then
-		jumpSlider:TweenSize(UDim2.new(1,0,0,0),"Out","Quad",0.3,true)
-		wait(0.3)
 		jumpSlider:Destroy()
-		jumpSlider = nil
-		h.JumpPower = 50
+		jumpSlider=nil
+		h.JumpPower=50
 	else
-		jumpSlider = newSlider("Jump",50,300,h.JumpPower or 50,nil, jumpBtn)
+		jumpSlider=newSlider("Jump",50,300,h.JumpPower or 50,function(v) h.JumpPower=v end)
 	end
 end)
 
---============= Fly / ESP (unchanged) =============
+--============= Fly / ESP =============
 local flying, flyConn
 newBtn("🚀 Fly", Color3.fromRGB(80,60,60), function()
 	local char = lp.Character
@@ -222,48 +213,47 @@ newBtn("🚀 Fly", Color3.fromRGB(80,60,60), function()
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 	if not flying then
-		flying = true
-		local bv = Instance.new("BodyVelocity", hrp)
-		bv.Name = "DarkHubFly"
-		bv.MaxForce = Vector3.new(4000,4000,4000)
-		bv.Velocity = Vector3.zero
-		flyConn = RS.RenderStepped:Connect(function()
-			if not flying then flyConn:Disconnect() return end
-			local v = Vector3.zero
-			if UIS:IsKeyDown(Enum.KeyCode.W) then v += workspace.CurrentCamera.CFrame.LookVector end
-			if UIS:IsKeyDown(Enum.KeyCode.S) then v -= workspace.CurrentCamera.CFrame.LookVector end
-			if UIS:IsKeyDown(Enum.KeyCode.A) then v -= workspace.CurrentCamera.CFrame.RightVector end
-			if UIS:IsKeyDown(Enum.KeyCode.D) then v += workspace.CurrentCamera.CFrame.RightVector end
-			bv.Velocity = v * 60
+		flying=true
+		local bv=Instance.new("BodyVelocity",hrp)
+		bv.Name="DarkHubFly"
+		bv.MaxForce=Vector3.new(4000,4000,4000)
+		bv.Velocity=Vector3.zero
+		flyConn=RS.RenderStepped:Connect(function()
+			local v=Vector3.zero
+			if UIS:IsKeyDown(Enum.KeyCode.W) then v+=workspace.CurrentCamera.CFrame.LookVector end
+			if UIS:IsKeyDown(Enum.KeyCode.S) then v-=workspace.CurrentCamera.CFrame.LookVector end
+			if UIS:IsKeyDown(Enum.KeyCode.A) then v-=workspace.CurrentCamera.CFrame.RightVector end
+			if UIS:IsKeyDown(Enum.KeyCode.D) then v+=workspace.CurrentCamera.CFrame.RightVector end
+			bv.Velocity=v*60
 		end)
 	else
-		flying = false
+		flying=false
 		if flyConn then flyConn:Disconnect() end
-		for _,v in pairs(hrp:GetChildren()) do if v:IsA("BodyVelocity") and v.Name=="DarkHubFly" then v:Destroy() end
+		for _,v in pairs(hrp:GetChildren()) do if v:IsA("BodyVelocity") and v.Name=="DarkHubFly" then v:Destroy() end end
 	end
 end)
 
 local highlights = {}
-local espEnabled = false
+local espEnabled=false
 newBtn("🔍 ESP", Color3.fromRGB(90,60,90), function()
 	espEnabled = not espEnabled
 	for _,p in ipairs(Players:GetPlayers()) do
 		if p~=lp and p.Character then
 			if espEnabled then
 				if not highlights[p] then
-					local h = Instance.new("Highlight", p.Character)
-					h.FillTransparency, h.OutlineColor = 1, Color3.fromRGB(255,0,255)
-					highlights[p] = h
+					local h=Instance.new("Highlight",p.Character)
+					h.FillTransparency, h.OutlineColor=1,Color3.fromRGB(255,0,255)
+					highlights[p]=h
 				end
 			elseif highlights[p] then
 				highlights[p]:Destroy()
-				highlights[p] = nil
+				highlights[p]=nil
 			end
 		end
 	end
 end)
 
---============= Left-Bottom Open/Close =============
+--============= Open/Close Toggle =============
 local function toggle()
 	frame.Visible = not frame.Visible
 	frame:TweenPosition(frame.Position,"Out","Quad",0.2,true)
