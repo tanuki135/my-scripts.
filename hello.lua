@@ -1,19 +1,14 @@
---// Dark Hub v1 | Ultimate Stable + Animated Sliders + Title Drag
---// Place in StarterPlayerScripts
+--// Dark Hub v1 | Stable + Sliders + Title Drag
+--// Place inside StarterPlayerScripts
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local lp = Players.LocalPlayer
 
--- ScreenGui
-local gui = Instance.new("ScreenGui", lp:WaitForChild("PlayerGui"))
-gui.Name = "DarkHub"
-gui.ResetOnSpawn = false
-
---============= Load Animation =============
+--============= Load Animation (unchanged) =============
 do
-	local anim = Instance.new("TextLabel", gui)
+	local anim = Instance.new("TextLabel", lp:WaitForChild("PlayerGui"))
 	anim.Size = UDim2.new(0,400,0,100)
 	anim.Position = UDim2.new(0.5,-200,0.5,-50)
 	anim.AnchorPoint = Vector2.new(0.5,0.5)
@@ -40,6 +35,10 @@ do
 end
 
 --============= Left-Bottom Open Button =============
+local gui = Instance.new("ScreenGui", lp:WaitForChild("PlayerGui"))
+gui.Name = "DarkHub"
+gui.ResetOnSpawn = false
+
 local openBtn = Instance.new("TextButton", gui)
 openBtn.Size = UDim2.new(0,50,0,50)
 openBtn.Position = UDim2.new(0,10,1,-60)
@@ -87,7 +86,7 @@ Instance.new("UICorner", close).CornerRadius = UDim.new(0,12)
 close.MouseButton1Click:Connect(function() frame.Visible = false end)
 close.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch then frame.Visible = false end end)
 
--- Make title draggable
+-- Make title draggable only
 local dragging = false
 local dragStart = nil
 local startPos = nil
@@ -130,7 +129,7 @@ local function newBtn(txt,color,fn)
 	return b
 end
 
-local function newSlider(lbl,min,max,init,fn)
+local function newSlider(lbl,min,max,init,fn, parentBtn)
 	local fr = Instance.new("Frame", container)
 	fr.Size = UDim2.new(1,0,0,0) -- start collapsed
 	fr.BackgroundTransparency = 1
@@ -152,21 +151,22 @@ local function newSlider(lbl,min,max,init,fn)
 	h.Position = UDim2.new(0,0,0,0)
 	h.BackgroundColor3 = Color3.fromRGB(180,0,255)
 	Instance.new("UICorner", h)
-	local dragging=false
+
+	local draggingSlider=false
 	h.InputBegan:Connect(function(i)
 		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
-			dragging=true
+			draggingSlider=true
 			frame.Draggable = false
 		end
 	end)
 	UIS.InputEnded:Connect(function(i)
 		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
-			dragging=false
+			draggingSlider=false
 			frame.Draggable = true
 		end
 	end)
 	UIS.InputChanged:Connect(function(i)
-		if dragging and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+		if draggingSlider and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
 			local x = math.clamp(i.Position.X - bg.AbsolutePosition.X,0,bg.AbsoluteSize.X)
 			h.Size = UDim2.new(0,x,1,0)
 			local v = min + (x/bg.AbsoluteSize.X)*(max-min)
@@ -174,12 +174,12 @@ local function newSlider(lbl,min,max,init,fn)
 			if fn then fn(v) end
 		end
 	end)
-	-- Tween to expand smoothly below button
-	fr:GetPropertyChangedSignal("Parent"):Connect(function()
-		if fr.Parent then
-			fr:TweenSize(UDim2.new(1,0,0,50),"Out","Quad",0.3,true)
-		end
-	end)
+
+	-- Smooth expand below parent button
+	if parentBtn then
+		fr.Position = UDim2.new(0,0,parentBtn.LayoutOrder*50 + 50,0)
+	end
+	fr:TweenSize(UDim2.new(1,0,0,50),"Out","Quad",0.3,true)
 	return fr
 end
 
@@ -195,7 +195,7 @@ local speedBtn = newBtn("🏃 Speed Boost", Color3.fromRGB(60,60,90), function()
 		speedSlider = nil
 		h.WalkSpeed = 16
 	else
-		speedSlider = newSlider("Speed",16,200,h.WalkSpeed or 16,function(v) h.WalkSpeed=v end)
+		speedSlider = newSlider("Speed",16,200,h.WalkSpeed or 16,nil, speedBtn)
 	end
 end)
 
@@ -210,7 +210,7 @@ local jumpBtn = newBtn("🦋 Infinity Jump", Color3.fromRGB(60,90,60), function(
 		jumpSlider = nil
 		h.JumpPower = 50
 	else
-		jumpSlider = newSlider("Jump",50,300,h.JumpPower or 50,function(v) h.JumpPower=v end)
+		jumpSlider = newSlider("Jump",50,300,h.JumpPower or 50,nil, jumpBtn)
 	end
 end)
 
