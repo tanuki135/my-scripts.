@@ -1,5 +1,5 @@
---// Dark Hub v1 | Stable + Speed/Jump Slider + Color Fix
---// Place inside StarterPlayerScripts
+--// Dark Hub v1 | Ultimate Stable + Animated Sliders
+--// Place in StarterPlayerScripts
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
@@ -11,46 +11,51 @@ local gui = Instance.new("ScreenGui", lp:WaitForChild("PlayerGui"))
 gui.Name = "DarkHub"
 gui.ResetOnSpawn = false
 
---============= Animation =============
-local anim = Instance.new("TextLabel", gui)
-anim.Size = UDim2.new(0,400,0,100)
-anim.Position = UDim2.new(0.5,-200,0.5,-50)
-anim.AnchorPoint = Vector2.new(0.5,0.5)
-anim.BackgroundTransparency = 1
-anim.Text = "Dark Hub v1"
-anim.TextColor3 = Color3.fromRGB(180,0,255)
-anim.Font = Enum.Font.GothamBlack
-anim.TextSize = 40
-anim.TextTransparency = 1
-anim.Rotation = 0
+--============= Load Animation =============
+do
+	local anim = Instance.new("TextLabel", gui)
+	anim.Size = UDim2.new(0,400,0,100)
+	anim.Position = UDim2.new(0.5,-200,0.5,-50)
+	anim.AnchorPoint = Vector2.new(0.5,0.5)
+	anim.BackgroundTransparency = 1
+	anim.Text = "Dark Hub v1"
+	anim.TextColor3 = Color3.fromRGB(180,0,255)
+	anim.Font = Enum.Font.GothamBlack
+	anim.TextSize = 40
+	anim.TextTransparency = 1
+	anim.Rotation = 0
 
-local dt = 0.01
-for i = 0, 1, dt do
-	anim.TextTransparency = 1-i
-	anim.Position = UDim2.new(0.5,-200,0.5,-50-50*(1-i))
-	wait(dt)
+	local dt = 0.01
+	for i = 0, 1, dt do
+		anim.TextTransparency = 1-i
+		anim.Position = UDim2.new(0.5,-200,0.5,-50-50*(1-i))
+		wait(dt)
+	end
+	for i = 0,1,dt do
+		anim.Rotation = 360*i
+		anim.TextTransparency = i
+		wait(dt)
+	end
+	anim:Destroy()
 end
-for i = 0, 1, dt do
-	anim.Rotation = 360*i
-	anim.TextTransparency = i
-	wait(dt)
-end
-anim:Destroy()
 
 --============= Left-Bottom Open Button =============
-local function mkBtn(parent,size,pos,text,color)
-	local b = Instance.new("TextButton", parent)
-	b.Size = size
-	b.Position = pos
-	b.AnchorPoint = Vector2.new(0,1)
-	b.Text = text
-	b.Font = Enum.Font.GothamBold
-	b.TextSize = 14
-	b.BackgroundColor3 = color or Color3.fromRGB(120,50,180)
-	Instance.new("UICorner", b)
-	return b
+local openBtn = Instance.new("TextButton", gui)
+openBtn.Size = UDim2.new(0,50,0,50)
+openBtn.Position = UDim2.new(0,10,1,-60)
+openBtn.AnchorPoint = Vector2.new(0,1)
+openBtn.Text = "Dark"
+openBtn.Font = Enum.Font.GothamBold
+openBtn.TextSize = 16
+openBtn.BackgroundColor3 = Color3.fromRGB(160,80,220)
+openBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", openBtn)
+
+local function buttonPressAnim(button)
+	button:TweenSize(UDim2.new(0,45,0,45),"Out","Quad",0.1,true)
+	wait(0.1)
+	button:TweenSize(UDim2.new(0,50,0,50),"Out","Quad",0.1,true)
 end
-local openBtn = mkBtn(gui, UDim2.new(0,50,0,50), UDim2.new(0,10,1,-60), "Dark", Color3.fromRGB(130,70,200))
 
 --============= Main Frame =============
 local frame = Instance.new("Frame", gui)
@@ -108,7 +113,7 @@ end
 
 local function newSlider(lbl,min,max,init,fn)
 	local fr = Instance.new("Frame", container)
-	fr.Size = UDim2.new(1,0,0,50)
+	fr.Size = UDim2.new(1,0,0,0) -- start collapsed
 	fr.BackgroundTransparency = 1
 	local l = Instance.new("TextLabel", fr)
 	l.Size = UDim2.new(0.4,0,1,0)
@@ -129,8 +134,18 @@ local function newSlider(lbl,min,max,init,fn)
 	h.BackgroundColor3 = Color3.fromRGB(180,0,255)
 	Instance.new("UICorner", h)
 	local dragging=false
-	h.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging=true end end)
-	UIS.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging=false end end)
+	h.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+			dragging=true
+			frame.Draggable = false
+		end
+	end)
+	UIS.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+			dragging=false
+			frame.Draggable = true
+		end
+	end)
 	UIS.InputChanged:Connect(function(i)
 		if dragging and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
 			local x = math.clamp(i.Position.X - bg.AbsolutePosition.X,0,bg.AbsoluteSize.X)
@@ -140,22 +155,28 @@ local function newSlider(lbl,min,max,init,fn)
 			if fn then fn(v) end
 		end
 	end)
+	-- Tween to expand smoothly
+	fr:GetPropertyChangedSignal("Parent"):Connect(function()
+		if fr.Parent then
+			fr:TweenSize(UDim2.new(1,0,0,50),"Out","Quad",0.2,true)
+		end
+	end)
 	return fr
 end
 
---============= Speed / Jump Buttons & Sliders =============
+--============= Speed / Jump =============
 local speedSlider
 local speedBtn = newBtn("🏃 Speed Boost", Color3.fromRGB(60,60,90), function()
 	local h = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
 	if not h then return end
 	if speedSlider then
+		speedSlider:TweenSize(UDim2.new(1,0,0,0),"Out","Quad",0.2,true)
+		wait(0.2)
 		speedSlider:Destroy()
 		speedSlider = nil
 		h.WalkSpeed = 16
 	else
-		speedSlider = newSlider("Speed",16,200,h.WalkSpeed or 16,function(v)
-			h.WalkSpeed = v
-		end)
+		speedSlider = newSlider("Speed",16,200,h.WalkSpeed or 16,function(v) h.WalkSpeed=v end)
 	end
 end)
 
@@ -164,13 +185,13 @@ local jumpBtn = newBtn("🦋 Infinity Jump", Color3.fromRGB(60,90,60), function(
 	local h = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
 	if not h then return end
 	if jumpSlider then
+		jumpSlider:TweenSize(UDim2.new(1,0,0,0),"Out","Quad",0.2,true)
+		wait(0.2)
 		jumpSlider:Destroy()
 		jumpSlider = nil
 		h.JumpPower = 50
 	else
-		jumpSlider = newSlider("Jump",50,300,h.JumpPower or 50,function(v)
-			h.JumpPower = v
-		end)
+		jumpSlider = newSlider("Jump",50,300,h.JumpPower or 50,function(v) h.JumpPower=v end)
 	end
 end)
 
@@ -224,6 +245,17 @@ newBtn("🔍 ESP", Color3.fromRGB(90,60,90), function()
 end)
 
 --============= Left-Bottom Open/Close =============
-local function toggle() frame.Visible = not frame.Visible end
-openBtn.MouseButton1Click:Connect(toggle)
-openBtn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then toggle() end end)
+local function toggle()
+	frame.Visible = not frame.Visible
+	frame:TweenPosition(frame.Position,"Out","Quad",0.2,true)
+end
+openBtn.MouseButton1Click:Connect(function()
+	buttonPressAnim(openBtn)
+	toggle()
+end)
+openBtn.InputBegan:Connect(function(i)
+	if i.UserInputType==Enum.UserInputType.Touch then
+		buttonPressAnim(openBtn)
+		toggle()
+	end
+end)
